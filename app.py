@@ -15,9 +15,9 @@ from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
-from config import files_path, error_msg, plot_path, zoomed_plot_path
+from config import files_path, error_msg, plot_path, zoomed_plot_path, plot_height, plot_width
 
-times, signal = None, None
+times, edf_data, n_signals, signal_labels = 0, [], 0, []
 
 
 @asynccontextmanager
@@ -46,7 +46,7 @@ async def index(request: Request):
 
 @app.post("/upload/", tags=["results of check"], response_class=HTMLResponse)
 async def upload_file(request: Request, file: UploadFile):
-    global times, signal
+    global times, edf_data, n_signals, signal_labels
 
     file_location = f"temp_{file.filename}"
     with open(file_location, "wb") as buffer:
@@ -56,14 +56,12 @@ async def upload_file(request: Request, file: UploadFile):
         n_signals = edf_reader.signals_in_file
 
         signal_labels = edf_reader.getSignalLabels()
-        print(n_signals, signal_labels)
         edf_data = [edf_reader.readSignal(i) for i in range(n_signals)]
 
-        signal = edf_data[0]
+        # signal = edf_data[0]
         sampling_rate = edf_reader.getSampleFrequency(0)
-        times = [i / sampling_rate for i in range(len(signal))]
+        # times = [i / sampling_rate for i in range(len(signal))]
 
-        # fig = go.Figure()
         fig = make_subplots(rows=n_signals, cols=1, shared_xaxes=True)
         for i in range(n_signals):
             times = [j / sampling_rate for j in range(len(edf_data[i]))]
@@ -93,18 +91,25 @@ async def upload_file(request: Request, file: UploadFile):
         raise HTTPException(status_code=500, detail=f"{error_msg}: {str(e)}")
 
 
-@app.get("/generate-pdf")
-async def generate_pdf(
-        is_zoomed: bool = Query(False),
-        start_time: float = None,
-        end_time: float = None):
-    global times, signal
+@app.get("/generate-pdf", tags=["load pdf file with plots"])
+async def generate_pdf(is_zoomed: bool = Query(False), start_time: float = None, end_time: float = None):
+    """Генерация файла pdf из изначального графика и увеличенных версий"""
+    global times, edf_data, n_signals, signal_labels
 
     plots_list = [plot_path]
-
     if is_zoomed and start_time is not None and end_time is not None:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=times, y=signal, mode='lines', name='Сигнал'))
+        fig = make_subplots(rows=n_signals, cols=1, shared_xaxes=True)
+        for i in range(n_signals):
+            # times = [j / sampling_rate for j in range(len(edf_data[i]))]
+            fig.add_trace(
+                go.Scatter(x=times, y=edf_data[i], mode='lines', name=signal_labels[i]),
+                row=i + 1,
+                col=1
+            )
+
+        # fig = go.Figure()
+        # fig.add_trace(go.Scatter(x=times, y=signal, mode='lines', name='Сигнал'))
+
         fig.update_xaxes(range=[start_time, end_time])
         fig.write_image(zoomed_plot_path)
         plots_list.append(zoomed_plot_path)
@@ -129,7 +134,7 @@ async def read_pdf(publication: str):
     )
 
 
-def save_to_pdf(image_paths, filename):
+def save_to_pdf(image_paths: list, filename: str) -> str:
     """Сохранение изображений графиков в PDF"""
     pdf_path = f"{filename}.pdf"
     buffer = io.BytesIO()
@@ -137,7 +142,7 @@ def save_to_pdf(image_paths, filename):
 
     for img_path in image_paths:
         # Добавляем изображение из файла в PDF
-        c.drawImage(img_path, 10, 10, width=500, height=400)  # Задайте нужные размеры
+        c.drawImage(img_path, 10, 10, width=plot_height, height=plot_width)
         c.showPage()
 
     c.save()
