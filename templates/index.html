@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="border: 1px solid #575757; width: 80%; position: relative; top: 160px;">
+    <h6 style="text-align: center; margin: 12px; font-size: 25px">{{ context }}</h6>
+</div>
+<div style="width: 90%; position: relative; top: 200px">
+    <div style="width: 40%; position: absolute; left: 50px; top: 60px;">
+        <img src="/static/images/example.jpg" width="100%">
+    </div>
+    <form class="uploadButton" action="/upload/" enctype="multipart/form-data" method="post">
+        <label for="file-upload" style="top: 65px; position: relative;">Выберите файл для анализа:</label>
+        <div class="file-upload">
+            <input name="file" id="file-upload" type="file" required>
+            <button class="button">Выбрать файл</button>
+            <span class="file-name">Файл не выбран</span>
+        </div>
+        <input class="submit_button" type="submit" value="Загрузить">
+    </form>
+</div>
+
+<script>
+    document.getElementById('file-upload').addEventListener('change', function() {
+      const fileName = this.files[0] ? this.files[0].name : 'Файл не выбран';
+      document.querySelector('.file-upload .file-name').textContent = fileName;
+      if (this.files[0]) {
+        document.querySelector('.file-upload .button').textContent = 'Файл выбран';
+      }
+    });
+</script>
+{% endblock %}

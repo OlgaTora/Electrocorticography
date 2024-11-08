@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-title">
+    <h1>График для файла {{ file_name }}</h1>
+</div>
+<div style="width: 90%; position: relative; top: 0px">
+    <!-- Вставка интерактивного графика Plotly -->
+    <div>
+        {{ graph_html | safe }}
+    </div>
+</div>
+<div style="width: 90%; position: relative; top: 0px; border: 1px solid #055f23">
+    <!-- Отображение информации о зуме -->
+    <div class="zoom-info">
+        <h3 style="color: #2f3a47; font-size: 25; text-transform: uppercase;">Подберите параметры увеличения на графике.</h3>
+        <form id="zoom-info-form">
+            <label for="zoom-factor">Кратность:</label>
+            <input type="text" id="zoom-factor" name="zoom-factor" readonly><br><br>
+
+            <label for="zoom-start">Начало отрезка (с):</label>
+            <input type="text" id="zoom-start" name="zoom-start" readonly><br><br>
+
+            <label for="zoom-end">Конец отрезка (с):</label>
+            <input type="text" id="zoom-end" name="zoom-end" readonly><br><br>
+        </form>
+    </div>
+    <div style="width: 25%; height: 210px; position: absolute; right: 0px; top: 40px;">
+        <!-- Кнопка для скачивания PDF с учётом зума -->
+        <a id="download-pdf" href="#" class="submit_button"
+           style="display: inline-block; text-align: center; line-height: 72px;">Скачать PDF</a>
+    </div>
+</div>
+
+<!-- <script src="https://cdn.plot.ly/plotly-latest.min.js"></script> -->
+<script src="/static/plotly-latest.min.js"></script>
+<script>
+    let isZoomed = false;
+    // Функция для обновления полей с информацией о зуме
+    function updateZoomInfo(relayoutData) {
+        if(relayoutData['xaxis.range[0]'] && relayoutData['xaxis.range[1]']) {
+            const start = parseFloat(relayoutData['xaxis.range[0]']).toFixed(2);
+            const end = parseFloat(relayoutData['xaxis.range[1]']).toFixed(2);
+            const zoomFactor = (end - start).toFixed(2);
+
+            // Установка флага зума
+            isZoomed = true;
+
+            // Обновляем значения полей формы
+            document.getElementById('zoom-start').value = start;
+            document.getElementById('zoom-end').value = end;
+            document.getElementById('zoom-factor').value = zoomFactor;
+
+            // Обновляем ссылку для скачивания PDF с новыми параметрами
+            const downloadLink = document.getElementById('download-pdf');
+            const context = encodeURIComponent("EDF сигнал");
+            const graphic = encodeURIComponent("plot.png");
+            downloadLink.href = `/generate-pdf?is_zoomed=${isZoomed}&start_time=${start}&end_time=${end}`;
+        }
+    }
+
+    // Добавляем обработчик событий для графика Plotly
+    document.addEventListener("DOMContentLoaded", function() {
+        // Поиск всех графиков Plotly на странице
+        var graphs = document.getElementsByClassName('plotly-graph-div');
+
+        for(var i=0; i<graphs.length; i++) {
+            var graph = graphs[i];
+            graph.on('plotly_relayout', updateZoomInfo);
+        }
+
+    });
+    // Обработчик для кнопки "Скачать как PDF"
+    document.getElementById('download-pdf').addEventListener('click', function(event) {
+        if (!isZoomed) {
+            const currentTime = new Date();
+            const formattedTime = currentTime.toISOString().slice(0, 19).replace(/:/g, '-');
+            const downloadLink = document.getElementById('download-pdf');
+            downloadLink.href = `/generate-pdf?is_zoomed=${isZoomed}&timestamp=${formattedTime}`;
+        }
+    });
+</script>
+
+
+{% endblock %}
