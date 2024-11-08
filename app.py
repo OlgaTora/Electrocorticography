@@ -6,6 +6,7 @@ import plotly.graph_objs as go
 from plotly.io import to_html
 from contextlib import asynccontextmanager
 from matplotlib import pyplot as plt
+from plotly.subplots import make_subplots
 
 from reportlab.pdfgen import canvas
 from fastapi import FastAPI, Request, UploadFile, HTTPException, Query
@@ -44,35 +45,6 @@ async def index(request: Request):
 
 
 @app.post("/upload/", tags=["results of check"], response_class=HTMLResponse)
-# async def upload_file(request: Request, file: UploadFile):
-#     file_location = f"temp_{file.filename}"
-#     with open(file_location, "wb") as buffer:
-#         buffer.write(await file.read())
-#     try:
-#         edf_reader = EdfReader(file_location)
-#         n_signals = edf_reader.signals_in_file
-#         signal_labels = edf_reader.getSignalLabels()
-#         edf_data = [edf_reader.readSignal(i) for i in range(n_signals)]
-#
-#         fig = plt.figure(figsize=(18, 8))
-#         plt.xlabel('Время (с)')
-#         plt.ylabel('Амплитуда', labelpad=24.0)
-#         ax = plt.axes()
-#         ax.plot(edf_reader.readSignal(0, 0, 2000), color='grey', linewidth=2)  # , marker='.')
-#         plt.savefig('static/plot.png')
-#         plt.close()
-#
-#         edf_reader.close()
-#         os.remove(file_location)
-#
-#         content = edf_data
-#         return templates.TemplateResponse("result.html",
-#                                           {"request": request,
-#                                            "content": content,
-#                                            "plot_url": "/static/plot.png"
-#                                            })
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"{error_msg}: {str(e)}")
 async def upload_file(request: Request, file: UploadFile):
     global times, signal
 
@@ -82,25 +54,29 @@ async def upload_file(request: Request, file: UploadFile):
     try:
         edf_reader = EdfReader(file_location)
         n_signals = edf_reader.signals_in_file
-        # signal_labels = edf_reader.getSignalLabels()
+
+        signal_labels = edf_reader.getSignalLabels()
+        print(n_signals, signal_labels)
         edf_data = [edf_reader.readSignal(i) for i in range(n_signals)]
 
         signal = edf_data[0]
         sampling_rate = edf_reader.getSampleFrequency(0)
         times = [i / sampling_rate for i in range(len(signal))]
 
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=times, y=signal,
-            mode='lines',
-            name='Сигнал',
-            line=dict(color='#2f3a47', width=1))
-        )
+        # fig = go.Figure()
+        fig = make_subplots(rows=n_signals, cols=1, shared_xaxes=True)
+        for i in range(n_signals):
+            times = [j / sampling_rate for j in range(len(edf_data[i]))]
+            fig.add_trace(
+                go.Scatter(x=times, y=edf_data[i], mode='lines', name=signal_labels[i]),
+                row=i + 1,
+                col=1
+            )
         fig.update_layout(
             title="EDF Сигнал",
             xaxis_title="Время (с)",
             yaxis_title="Амплитуда",
-            dragmode='zoom'
+            dragmode='zoom',
         )
 
         # Сохраняем график как HTML-компонент
