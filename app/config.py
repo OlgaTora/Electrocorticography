@@ -7,3 +7,4 @@ plot_path = "static/plot.png"
 zoomed_plot_path = "static/plot_zoomed.png"
 plot_height = 500
 plot_width = 220
+model_path = 'model/..'

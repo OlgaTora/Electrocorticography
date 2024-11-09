@@ -44,6 +44,30 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "context": context})
 
 
+@app.post("/upload-data/", tags=["view periods"], response_class=HTMLResponse)
+async def upload_file(request: Request, file: UploadFile):
+    """"""
+    file_location = f"temp_{file.filename}"
+    with open(file_location, "wb") as buffer:
+        buffer.write(await file.read())
+
+    data = preprocessing(file_location)
+    predict = get_prediction(data)
+    # save predict in file (xls, edf?)
+    # можно ли сделать вывод периодов:
+
+
+def get_prediction(data):
+    # load model from dir "model" - model_path
+    # get pred from model and return
+    pass
+
+
+def preprocessing(file_location:str):
+    """Обработка данных для отправки в модель."""
+    pass
+
+
 @app.post("/upload/", tags=["results of check"], response_class=HTMLResponse)
 async def upload_file(request: Request, file: UploadFile):
     global times, edf_data, n_signals, signal_labels
@@ -54,6 +78,7 @@ async def upload_file(request: Request, file: UploadFile):
     try:
         edf_reader = EdfReader(file_location)
         n_signals = edf_reader.signals_in_file
+        # print(edf_reader.annotations_in_file)
 
         signal_labels = edf_reader.getSignalLabels()
         edf_data = [edf_reader.readSignal(i) for i in range(n_signals)]
