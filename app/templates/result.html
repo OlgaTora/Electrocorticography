@@ -27,13 +27,16 @@
             <input type="text" id="zoom-end" name="zoom-end" readonly><br><br>
         </form>
     </div>
-    <div style="width: 25%; height: 210px; position: absolute; right: 0px; top: 40px;">
+    <div style="width: 25%; height: 270px; position: absolute; right: 0px; top: 40px;">
         <!-- Кнопка для скачивания PDF с учётом зума -->
         <a id="download-pdf" href="#" class="submit_button"
            style="display: inline-block; text-align: center; line-height: 72px;">Скачать PDF</a>
         <!-- Кнопка для скачивания EDF -->
         <a id="download-edf" href="#" class="submit_button"
-           style="display: inline-block; text-align: center; line-height: 72px;">Скачать EDF</a>
+           style="display: inline-block; text-align: center; line-height: 72px; position: relative; top: 15px">Скачать EDF</a>
+        <!-- Кнопка для скачивания EDF -->
+        <a id="show_period" href="#" class="submit_button"
+           style="display: inline-block; text-align: center; line-height: 72px; position: relative; top: 30px">Посмотреть периоды</a>
     </div>
 </div>
 
@@ -83,6 +86,13 @@
             const downloadLink = document.getElementById('download-pdf');
             downloadLink.href = `/generate-pdf?is_zoomed=${isZoomed}&timestamp=${formattedTime}`;
         }
+    });
+        // Обработчик для кнопки "Скачать как EDF"
+    document.getElementById('download-edf').addEventListener('click', function(event) {
+            const currentTime = new Date();
+            const formattedTime = currentTime.toISOString().slice(0, 19).replace(/:/g, '-');
+            const downloadLinkEdf = document.getElementById('download-edf');
+            downloadLinkEdf.href = `/generate-edf?is_zoomed=${isZoomed}&timestamp=${formattedTime}`;
     });
 </script>
 {% endblock %}
