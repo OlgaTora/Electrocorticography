@@ -45,7 +45,7 @@ async def index(request: Request):
 
 
 @app.post("/upload-data/", tags=["view periods"], response_class=HTMLResponse)
-async def upload_file(request: Request, file: UploadFile):
+async def upload_data(request: Request, file: UploadFile):
     """"""
     file_location = f"temp_{file.filename}"
     with open(file_location, "wb") as buffer:
