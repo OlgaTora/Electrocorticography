@@ -44,17 +44,13 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "context": context})
 
 
-@app.post("/upload-data/", tags=["view periods"], response_class=HTMLResponse)
-async def upload_data(request: Request, file: UploadFile):
-    """"""
-    file_location = f"temp_{file.filename}"
-    with open(file_location, "wb") as buffer:
-        buffer.write(await file.read())
-
-    data = preprocessing(file_location)
-    predict = get_prediction(data)
-    # save predict in file (xls, edf?)
-    # можно ли сделать вывод периодов:
+@app.post("/show_period/{period}", tags=["view periods"], response_class=HTMLResponse)
+async def show_period(request: Request, file_location: str):
+    pass
+    # можно ли сделать вывод периодов: SWD IS DS - c временем начало-конец?
+    # если да, то выводим их список, при нажатии - попадаем на страницу с графиком.
+    # в функцию передаем обрезанный файл по времени + пояснения (аннотации)
+    # если в периодах есть эпи-пики - то их показываем на графике
 
 
 def get_prediction(data):
@@ -63,10 +59,15 @@ def get_prediction(data):
     pass
 
 
-def preprocessing(file_location:str):
+def preprocessing(file_location: str):
     """Обработка данных для отправки в модель."""
     pass
 
+
+# делаем кнопку для сохранения в файл xls, edf
+# делаем кнопку для вывода периодов
+# в самом графике должна быть разметка по аннотациям
+# если можно ли сделать вывод периодов - то делаем функцию show_period и кнопку для нее
 
 @app.post("/upload/", tags=["results of check"], response_class=HTMLResponse)
 async def upload_file(request: Request, file: UploadFile):
@@ -76,16 +77,14 @@ async def upload_file(request: Request, file: UploadFile):
     with open(file_location, "wb") as buffer:
         buffer.write(await file.read())
     try:
+        data = preprocessing(file_location)  # TODO
+        predict = get_prediction(data)  # TODO
+
         edf_reader = EdfReader(file_location)
         n_signals = edf_reader.signals_in_file
-        # print(edf_reader.annotations_in_file)
-
         signal_labels = edf_reader.getSignalLabels()
         edf_data = [edf_reader.readSignal(i) for i in range(n_signals)]
-
-        # signal = edf_data[0]
         sampling_rate = edf_reader.getSampleFrequency(0)
-        # times = [i / sampling_rate for i in range(len(signal))]
 
         fig = make_subplots(rows=n_signals, cols=1, shared_xaxes=True)
         for i in range(n_signals):
@@ -117,6 +116,7 @@ async def upload_file(request: Request, file: UploadFile):
         raise HTTPException(status_code=500, detail=f"{error_msg}: {str(e)}")
 
 
+# в самом графике должна быть разметка по аннотациям
 @app.get("/generate-pdf", tags=["load pdf file with plots"])
 async def generate_pdf(is_zoomed: bool = Query(False), start_time: float = None, end_time: float = None):
     """Генерация файла pdf из изначального графика и увеличенных версий"""
@@ -126,7 +126,6 @@ async def generate_pdf(is_zoomed: bool = Query(False), start_time: float = None,
     if is_zoomed and start_time is not None and end_time is not None:
         fig = make_subplots(rows=n_signals, cols=1, shared_xaxes=True)
         for i in range(n_signals):
-            # times = [j / sampling_rate for j in range(len(edf_data[i]))]
             fig.add_trace(
                 go.Scatter(x=times, y=edf_data[i], mode='lines', name=signal_labels[i]),
                 row=i + 1,
