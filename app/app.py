@@ -77,8 +77,8 @@ async def upload_file(request: Request, file: UploadFile):
     with open(file_location, "wb") as buffer:
         buffer.write(await file.read())
     try:
-        data = preprocessing(file_location)  # TODO
-        predict = get_prediction(data)  # TODO
+        data = preprocessing(file_location)  # TO DO
+        predict = get_prediction(data)  # TO DO
 
         edf_reader = EdfReader(file_location)
         n_signals = edf_reader.signals_in_file
@@ -154,6 +154,11 @@ async def read_pdf(publication: str):
         media_type='application/pdf',
         filename=publication
     )
+
+
+# buttom in html сделать
+def save_to_edf(filename: str) -> str:
+    pass
 
 
 def save_to_pdf(image_paths: list, filename: str) -> str:
