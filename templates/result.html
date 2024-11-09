@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="page-title">
-    <h1>График для файла {{ file_name }}</h1>
+    <h2>График для исследуемого: {{ id }}</h2>
+    <h5>Возраст: {{ age }} месяцев </h5>
+    <h5>Фармакология: {{ pharm }}</h5>
+    <h5>Общий период наблюдения: {{ period }}</h5>
 </div>
 <div style="width: 90%; position: relative; top: 0px">
     <!-- Вставка интерактивного графика Plotly -->

@@ -82,10 +82,11 @@ async def upload_file(request: Request, file: UploadFile):
         fig.write_image(plot_path)
         edf_reader.close()
         os.remove(file_location)
+        id, age, pharm, period = _get_rat_data(str(file.filename))
 
         return templates.TemplateResponse("result.html",
                                           {"request": request,
-                                           "file_name": file.filename,
+                                           "id": id, "age": age, "pharm": pharm, "period": period,
                                            "graph_html": graph_html})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{error_msg}: {str(e)}")
@@ -106,9 +107,6 @@ async def generate_pdf(is_zoomed: bool = Query(False), start_time: float = None,
                 row=i + 1,
                 col=1
             )
-
-        # fig = go.Figure()
-        # fig.add_trace(go.Scatter(x=times, y=signal, mode='lines', name='Сигнал'))
 
         fig.update_xaxes(range=[start_time, end_time])
         fig.write_image(zoomed_plot_path)
@@ -141,8 +139,7 @@ def save_to_pdf(image_paths: list, filename: str) -> str:
     c = canvas.Canvas(buffer)
 
     for img_path in image_paths:
-        # Добавляем изображение из файла в PDF
-        c.drawImage(img_path, 10, 10, width=plot_height, height=plot_width)
+        c.drawImage(img_path, 10, 600, width=plot_height, height=plot_width)
         c.showPage()
 
     c.save()
@@ -151,3 +148,9 @@ def save_to_pdf(image_paths: list, filename: str) -> str:
     with open(pdf_path, "wb") as f:
         f.write(buffer.read())
     return pdf_path
+
+
+def _get_rat_data(file_name: str):
+    file_name = file_name.split('.')[0]
+    file_name_split = file_name.split('_')
+    return file_name_split[0], file_name_split[1][:-1], file_name_split[2], file_name_split[3]
