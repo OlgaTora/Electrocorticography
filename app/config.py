@@ -9,3 +9,4 @@ zoomed_plot_path = "static/plot_zoomed.png"
 plot_height = 500
 plot_width = 220
 model_path = 'model/model.h5'
+sfreq = 400
