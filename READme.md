@@ -1,28 +1,26 @@
 ### Для запуска проекта:
-
-1. Установите docker (есть версия с интерфейсом)
-```
-https://docs.docker.com/
-```
-2. Клонируйте этот репозитрий
+1. Клонируйте этот репозитрий
 ```
 https://github.com/OlgaTora/Electrocorticography.git
 ```
-3.Перейдите в папку проекта
+2. Перейдите в папку проекта
 ```
 cd Electrocorticography/app
 ```
-4.При первом запуске выполнить в терминале следующие команды:
+3. Создайте виртуальное окружение согласно вашей ОС\
+Windows
 ```
-docker build . -t rats
-docker run -it --name rats rats
+python -m venv venv
+.\Scripts\activate
 ```
-docker сам создаст виртуальное окружение 
-и установит все необходимые программы внутри контейнера.
-
-При повторных использованиях:
+Linux/MacOS
 ```
-docker start -i rats
+python3 -m venv venv
+source bin/activate
+```
+4. Установите зависимости
+```
+pip install -r requirements.txt.
 ```
 5. Запустите в терминале приложение согласно вашей ОС\
 Windows
@@ -36,4 +34,3 @@ python3 main.py
 6. Перейдите по адресу: 
 ```
 http://127.0.0.1:8000/
-```

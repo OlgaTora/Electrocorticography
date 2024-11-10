@@ -4,14 +4,10 @@ import mne
 import numpy as np
 
 from datetime import datetime
-from tensorflow.keras.models import load_model
-
-
 import plotly.graph_objs as go
 from plotly.io import to_html
 from contextlib import asynccontextmanager
 from plotly.subplots import make_subplots
-from sklearn.preprocessing import LabelEncoder
 from reportlab.pdfgen import canvas
 from fastapi import FastAPI, Request, UploadFile, HTTPException, Query, Response
 from pyedflib import EdfReader
@@ -19,9 +15,10 @@ from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
-from config import files_path, error_msg, plot_path, zoomed_plot_path, plot_height, plot_width, public_path, sfreq, \
+from config import files_path, error_msg, plot_path, zoomed_plot_path, plot_height, plot_width, public_path,  \
     model_path
 from utils import bandpass_filter, segment_signal, normalize_segments, extract_features
+
 
 sampling_rate, edf_data, n_signals, signal_labels = 0, [], 0, []
 
@@ -57,43 +54,6 @@ async def show_period(request: Request, file_location: str):
     # если да, то выводим их список, при нажатии - попадаем на страницу с графиком.
     # в функцию передаем обрезанный файл по времени + пояснения (аннотации)
     # если в периодах есть эпи-пики - то их показываем на графике
-
-
-def get_prediction(data):
-    model = load_model(model_path)
-    unmarked_predictions, unmarked_durations = predict_unmarked_data(model, data, sfreq=sfreq)
-    return unmarked_predictions, unmarked_durations
-
-
-# def get_edf_file(data):
-#     _, unmarked_durations = get_prediction(data)
-#     duration = unmarked_durations[file_path]
-#         annotations = []
-#         current_label = None
-#         event_start = None
-#
-#         for i, label in enumerate(preds):
-#             window_start_time = i * 2.5
-#             if label != 'Unknown':
-#                 if current_label is None:
-#                     current_label = label
-#                     event_start = window_start_time
-#                 elif label != current_label:
-#                     annotations.append((event_start, window_start_time - event_start, current_label))
-#                     current_label = label
-#                     event_start = window_start_time
-#             else:
-#                 if current_label is not None:
-#                     annotations.append((event_start, window_start_time - event_start, current_label))
-#                     current_label = None
-#                     event_start = None
-#
-#         if current_label is not None:
-#             annotations.append((event_start, duration - event_start, current_label))
-#
-#         output_file = os.path.splitext(file_path)[0] + '_annotated.edf'
-#         add_annotations_to_edf(file_path, annotations, output_file)
-#         print(f"Аннотации добавлены и сохранены в {output_file}")
 
 
 
@@ -229,56 +189,49 @@ def render_plot():
         yaxis_title="Амплитуда",
         dragmode='zoom',
     )
+
+    colors = {
+        'ds': 'grey'
+        , 'is': 'brown'
+        , 'swd': 'yellow'
+    }
+    stages = {
+        'ds': [[1.4008908169805067e-05, -0.00012662352638325136]]
+        , 'is': [[-0.00012662352638325136, 0.00014212956028931557]]
+        , 'swd': [[-0.00018972840723899037, 0.00015072856712546173]]
+    }
+
+    for ch in range(n_signals):
+        max_y = edf_data[ch]
+        min_y = edf_data[ch]
+        for stage, coords in stages.items():
+            for start_coord, end_coord in coords:
+                fig.add_shape(type="line",
+                              x0=start_coord / sampling_rate, y0=min_y,
+                              x1=start_coord / sampling_rate, y1=max_y,
+                              line=dict(color=colors[stage], width=2),
+                              xref='x', yref=f'y{ch + 1}' if ch > 0 else 'y'
+                              )
+                fig.add_shape(type="line",
+                              x0=end_coord / sampling_rate, y0=min_y,
+                              x1=end_coord / sampling_rate, y1=max_y,
+                              line=dict(color=colors[stage], width=2),
+                              xref='x', yref=f'y{ch + 1}' if ch > 0 else 'y'
+                              )
     return fig
-
-
-def predict_unmarked_data(model, file_paths, sfreq=sfreq):
-    """  Предсказание меток для неразмеченных данных. """
-    predictions = {}
-    durations = {}
-    label_encoder = LabelEncoder()
-    for file_path in file_paths:
-        raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
-        data = raw.get_data()
-        duration = raw.times[-1]  # Длительность записи в секундах
-        durations[file_path] = duration
-        filtered = bandpass_filter(data, l_freq=0.5, h_freq=100, sfreq=sfreq)
-        segments, _ = segment_signal(filtered, [], window_size=5, overlap=0.5, sfreq=sfreq)
-        normalized_segments = normalize_segments(segments)
-        features = extract_features(normalized_segments, sfreq=sfreq)
-        X_unmarked = features.reshape(features.shape[0], features.shape[1], 1)
-        preds = model.predict(X_unmarked)
-        pred_classes = np.argmax(preds, axis=1)
-        pred_labels = label_encoder.inverse_transform(pred_classes)
-        predictions[file_path] = pred_labels
-    return predictions, durations
-
-
-def add_annotations_to_edf(original_edf, annotations, output_edf):
-    """
-    Добавление аннотаций в EDF-файл и сохранение нового файла.
-    """
-    import pyedflib
-
-    f = pyedflib.EdfReader(original_edf)
-    n_channels = f.signals_in_file
-    signal_labels = f.getSignalLabels()
-    signal_headers = f.getSignalHeaders()
-    n_samples = f.getNSamples()[0]
-    data = np.zeros((n_channels, n_samples))
-    for i in range(n_channels):
-        data[i, :] = f.readSignal(i)
-    file_header = f.getHeader()
-    f.close()
-
-    writer = pyedflib.EdfWriter(output_edf, n_channels=n_channels, file_type=pyedflib.FILETYPE_EDFPLUS)
-    writer.setHeader(file_header)
-    for i in range(n_channels):
-        writer.setSignalHeader(i, signal_headers[i])
-
-    writer.writeSamples(data)
-    for onset, duration, label in annotations:
-        writer.writeAnnotation(onset, duration, label)
-    writer.close()
-
+    # fig = make_subplots(rows=n_signals, cols=1, shared_xaxes=True)
+    # for i in range(n_signals):
+    #     times = [j / sampling_rate for j in range(len(edf_data[i]))]
+    #     fig.add_trace(
+    #         go.Scatter(x=times, y=edf_data[i], mode='lines', name=signal_labels[i]),
+    #         row=i + 1,
+    #         col=1
+    #     )
+    # fig.update_layout(
+    #     title="EDF Сигнал",
+    #     xaxis_title="Время (с)",
+    #     yaxis_title="Амплитуда",
+    #     dragmode='zoom',
+    # )
+    # return fig
 
