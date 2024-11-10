@@ -81,7 +81,6 @@ async def upload_file(request: Request, file: UploadFile):
         # Сохраняем график как HTML-компонент
         graph_html = fig.to_html(full_html=False)
         fig.write_image(plot_path)
-        # edf_reader.close()
         # os.remove(file_location)
         id, age, pharm, period = _get_rat_data(str(file.filename))
 

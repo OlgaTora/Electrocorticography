@@ -6,7 +6,7 @@ from scipy.stats import zscore
 
 from config import sfreq
 
-
+# это функции для обработки данных и выгрузки их в размеченный едф
 def bandpass_filter(data, l_freq=0.5, h_freq=100, sfreq=400):
     """
     Применение полосового фильтра к данным с использованием IIR-фильтра.
