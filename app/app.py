@@ -189,49 +189,5 @@ def render_plot():
         yaxis_title="Амплитуда",
         dragmode='zoom',
     )
-
-    colors = {
-        'ds': 'grey'
-        , 'is': 'brown'
-        , 'swd': 'yellow'
-    }
-    stages = {
-        'ds': [[1.4008908169805067e-05, -0.00012662352638325136]]
-        , 'is': [[-0.00012662352638325136, 0.00014212956028931557]]
-        , 'swd': [[-0.00018972840723899037, 0.00015072856712546173]]
-    }
-
-    for ch in range(n_signals):
-        max_y = edf_data[ch]
-        min_y = edf_data[ch]
-        for stage, coords in stages.items():
-            for start_coord, end_coord in coords:
-                fig.add_shape(type="line",
-                              x0=start_coord / sampling_rate, y0=min_y,
-                              x1=start_coord / sampling_rate, y1=max_y,
-                              line=dict(color=colors[stage], width=2),
-                              xref='x', yref=f'y{ch + 1}' if ch > 0 else 'y'
-                              )
-                fig.add_shape(type="line",
-                              x0=end_coord / sampling_rate, y0=min_y,
-                              x1=end_coord / sampling_rate, y1=max_y,
-                              line=dict(color=colors[stage], width=2),
-                              xref='x', yref=f'y{ch + 1}' if ch > 0 else 'y'
-                              )
     return fig
-    # fig = make_subplots(rows=n_signals, cols=1, shared_xaxes=True)
-    # for i in range(n_signals):
-    #     times = [j / sampling_rate for j in range(len(edf_data[i]))]
-    #     fig.add_trace(
-    #         go.Scatter(x=times, y=edf_data[i], mode='lines', name=signal_labels[i]),
-    #         row=i + 1,
-    #         col=1
-    #     )
-    # fig.update_layout(
-    #     title="EDF Сигнал",
-    #     xaxis_title="Время (с)",
-    #     yaxis_title="Амплитуда",
-    #     dragmode='zoom',
-    # )
-    # return fig
 
